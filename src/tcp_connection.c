@@ -508,8 +508,13 @@ static ssize_t transmit(tcp_conn_t *conn, size_t remaining)
          ep = list_next(ep)) {
         struct cmsghdr *cp = (struct cmsghdr *) list_elem_get_value(ep);
         if (cp->cmsg_level != CMSG_ASYNC_MAGIC_MARK ||
-            cp->cmsg_type != CMSG_ASYNC_MAGIC_MARK)
-            ancillary_size += CMSG_ALIGN(cp->cmsg_len);
+            cp->cmsg_type != CMSG_ASYNC_MAGIC_MARK) {
+
+            static const size_t struct_size = CMSG_ALIGN (sizeof (struct cmsghdr));
+            size_t original_data_size = cp->cmsg_len - struct_size;
+            size_t aligned_space = CMSG_SPACE(original_data_size);
+            ancillary_size += aligned_space;
+        }
     }
     uint8_t *ancillary = fsalloc(ancillary_size);
     uint8_t *ap = ancillary;
@@ -519,11 +524,17 @@ static ssize_t transmit(tcp_conn_t *conn, size_t remaining)
         struct cmsghdr *cp = (struct cmsghdr *) list_elem_get_value(ep);
         if (cp->cmsg_level != CMSG_ASYNC_MAGIC_MARK ||
             cp->cmsg_type != CMSG_ASYNC_MAGIC_MARK) {
+
+            static const size_t struct_size = CMSG_ALIGN (sizeof (struct cmsghdr));
+            size_t original_data_size = cp->cmsg_len - struct_size;
+            //size_t aligned_data_size = CMSG_ALIGN(original_data_size);
+            size_t aligned_space = CMSG_SPACE(original_data_size);
+
             size_t anclen = cp->cmsg_len;
             memcpy(ap, cp, anclen);
             FSTRACE(ASYNC_TCP_SENDMSG_ANCILLARY, conn->uid, anclen);
             FSTRACE(ASYNC_TCP_SENDMSG_ANCILLARY_DUMP, conn->uid, ap, anclen);
-            ap += CMSG_ALIGN(anclen);
+            ap += aligned_space;
         }
     }
     struct msghdr message = {
