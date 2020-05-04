@@ -1014,7 +1014,12 @@ ssize_t tcp_send_ancillary_data(tcp_conn_t *conn, int level, int type,
     cp->cmsg_level = level;
     cp->cmsg_type = type;
     cp->cmsg_len = CMSG_LEN(size);
-    memcpy(CMSG_DATA(cp), buf, size);
+    unsigned char *cp_data = CMSG_DATA(cp);
+    memcpy(cp_data, buf, size);
+    size_t size_aligned = CMSG_ALIGN(size);
+    if (size_aligned > size) {
+        memset(cp_data + size, 0, size_aligned - size);
+    }
     list_append(conn->output.ancillary_data, cp);
     return size;
 }
