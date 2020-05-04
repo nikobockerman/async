@@ -531,7 +531,7 @@ static ssize_t transmit(tcp_conn_t *conn, size_t remaining)
             size_t aligned_space = CMSG_SPACE(original_data_size);
 
             size_t anclen = cp->cmsg_len;
-            memcpy(ap, cp, anclen);
+            memcpy(ap, cp, aligned_space);
             FSTRACE(ASYNC_TCP_SENDMSG_ANCILLARY, conn->uid, anclen);
             FSTRACE(ASYNC_TCP_SENDMSG_ANCILLARY_DUMP, conn->uid, ap, anclen);
             ap += aligned_space;
